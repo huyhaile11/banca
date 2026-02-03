@@ -1,12 +1,155 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SÀN GIAO DỊCH CA HGS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f1f5f9; color: #1e293b; }
+    .glass-card { background: white; border-radius: 1.25rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+    .btn-post { background: linear-gradient(135deg, #1d4ed8, #2563eb); color: white; font-weight: 700; transition: all 0.2s; }
+    .btn-post:active { transform: scale(0.98); }
+    .shift-badge { background: #eff6ff; color: #1e40af; padding: 4px 12px; border-radius: 8px; font-weight: 800; border: 1px solid #dbeafe; }
+    .info-badge { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid #e2e8f0; }
+    .zalo-btn { background: #0068ff; color: white; border-radius: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s; }
+    .zalo-btn:hover { background: #0056d2; transform: translateY(-2px); }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-in { animation: slideIn 0.3s ease-out forwards; }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+
+  <div class="max-w-md mx-auto space-y-6">
+    <header class="text-center py-4">
+      <h1 class="text-2xl font-black text-blue-700 tracking-tighter uppercase italic">✈️ HGS SHIFT MARKET</h1>
+      <p class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">Hệ thống hỗ trợ đổi ca nội bộ</p>
+    </header>
+
+    <div class="glass-card p-6 space-y-4 border-t-4 border-t-blue-600">
+      <h2 class="font-bold text-slate-800 flex items-center gap-2 underline decoration-blue-200 underline-offset-4">📝 ĐĂNG TIN NHỜ LÀM HỘ</h2>
+      
+      <div class="space-y-3">
+        <select id="post-name" class="w-full p-3 bg-slate-50 border rounded-xl font-semibold outline-none focus:ring-2 ring-blue-500 text-sm"></select>
+        
+        <div class="grid grid-cols-2 gap-2">
+          <select id="post-day" class="p-3 bg-slate-50 border rounded-xl text-sm font-medium outline-none">
+            <option value="mon">Thứ Hai</option><option value="tue">Thứ Ba</option>
+            <option value="wed">Thứ Tư</option><option value="thu">Thứ Năm</option>
+            <option value="fri">Thứ Sáu</option><option value="sat">Thứ Bảy</option>
+            <option value="sun">Chủ Nhật</option>
+          </select>
+          <input id="post-shift" type="text" placeholder="Mã ca / Giờ (8-12)" class="p-3 bg-slate-50 border rounded-xl text-sm outline-none focus:border-blue-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+            <input id="post-position" type="text" placeholder="Vị trí (VD: Check-in)" class="p-3 bg-slate-50 border rounded-xl text-sm outline-none focus:border-blue-500">
+            <input id="post-flight" type="text" placeholder="Chuyến (VD: VN123)" class="p-3 bg-slate-50 border rounded-xl text-sm outline-none focus:border-blue-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <input id="post-price" type="text" placeholder="Giá tiền (VD: 300k)" class="p-3 bg-slate-50 border rounded-xl text-sm outline-none focus:border-blue-500">
+          <button onclick="setNegotiable()" class="text-[10px] font-bold text-blue-600 bg-blue-50 rounded-xl border border-blue-100 uppercase">Giá thương lượng</button>
+        </div>
+
+        <div class="relative">
+          <span class="absolute left-3 top-3 opacity-40 text-sm">📱</span>
+          <input id="post-zalo" type="tel" placeholder="Số điện thoại Zalo liên hệ" class="w-full p-3 pl-10 bg-slate-50 border rounded-xl text-sm outline-none">
+        </div>
+
+        <textarea id="post-note" placeholder="Ghi chú thêm (Lý do...)" class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none" rows="2"></textarea>
+        
+        <button id="btn-post" class="w-full py-4 btn-post rounded-xl shadow-lg">ĐĂNG BÁN CA</button>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div class="flex justify-between items-center px-1">
+        <h2 class="font-extrabold text-slate-700 text-sm uppercase">🔥 Tin mới cập nhật</h2>
+        <span id="count-tag" class="bg-blue-600 text-white text-[10px] font-black px-2 py-1 rounded-md tracking-tighter">0 TIN</span>
+      </div>
+      
+      <div id="market-list" class="space-y-5">
+        <div class="text-center py-10 text-slate-400 text-sm italic">Đang tải dữ liệu sàn giao dịch...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-slate-800">👥 Đồng đội đang rảnh</h3>
+        <button onclick="closeModal()" class="text-slate-400 p-2">✕</button>
+      </div>
+      <div id="suggest-list" class="max-h-80 overflow-y-auto space-y-2 pr-1"></div>
+      <button onclick="closeModal()" class="w-full py-3 bg-slate-100 font-bold rounded-xl text-slate-600 text-sm hover:bg-slate-200">Đóng</button>
+    </div>
+  </div>
+
 <script>
-// ... (Các phần Firebase và parseShift giữ nguyên như trên) ...
+// --- CẤU HÌNH FIREBASE ---
+const firebaseConfig = {
+  apiKey: "AIzaSyA2scrs8GpNAWZ5ETId6z3vkUMmArD1yn8",
+  authDomain: "hgs36-6db0b.firebaseapp.com",
+  databaseURL: "https://hgs36-6db0b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "hgs36-6db0b",
+  storageBucket: "hgs36-6db0b.firebasestorage.app",
+  messagingSenderId: "356125658008",
+  appId: "1:356125658008:web:aec521395459b2192579ed"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let employeeData = [];
+const shifts={ HC:{start:7.5,end:15.5},A:{start:22,end:30},X:{start:14,end:22},S:{start:6,end:14} };
+
+function setNegotiable() { document.getElementById('post-price').value = "Giá cả thương lượng"; }
+
+function parseShift(str){
+    str=(str||"").toUpperCase().trim(); if(!str || str==="OFF" || str==="OM") return {start:0,end:0,dur:0};
+    if(str.includes("-") || str.includes(":")){
+        const parts = str.split("-");
+        if(parts.length === 2){
+            const s = parseFloat(parts[0].replace(":","."));
+            const e = parseFloat(parts[1].replace(":","."));
+            if(!isNaN(s) && !isNaN(e)) return {start:s, end:e, dur: e-s};
+        }
+    }
+    const re_fixed=/^(\d*\.?\d*-?)?(H|DH|M)(\d*\.?\d*)?(-?\d*\.?\d*)?$/; const m_f = re_fixed.exec(str);
+    if(m_f){
+        let d=8, s=8; if(m_f[2]==="DH"||m_f[2]==="M") d=parseFloat(m_f[3])||0;
+        else if(m_f[2]==="H"){ if(m_f[3]) d=parseFloat(m_f[3]); if(/H4S/.test(str)) {s=8;d=4;} else if(/H4C/.test(str)){s=14;d=4;} }
+        let e=s+d; if(m_f[1]){ const v=parseFloat(m_f[1].replace("-","")); m_f[1].includes("-")?s+=v:s-=v; }
+        if(m_f[4]){ const v=parseFloat(m_f[4].replace("-","")); m_f[4].startsWith("-")?e-=v:e+=v; }
+        return {start:s, end:e, dur: e-s};
+    }
+    const re=/^(\d*\.?\d*-?)?([A-Z]{1,2})(-?\d*\.?\d*)?$/; const m=re.exec(str);
+    if(!m || !shifts[m[2]]) return {start:8, end:16, dur:8};
+    let {start,end}=shifts[m[2]]; if(m[1]){ const v=parseFloat(m[1].replace("-","")); m[1].includes("-")?start+=v:start-=v; }
+    if(m[3]){ const v=parseFloat(m[3].replace("-","")); m[3].startsWith("-")?end-=v:end+=v; }
+    return {start, end, dur: end-start};
+}
+
+db.ref("hgs_data/employees").on("value", (snap) => {
+    employeeData = snap.val() || [];
+    const sel = document.getElementById("post-name");
+    sel.innerHTML = '<option value="">-- Chọn tên bạn --</option>';
+    employeeData.sort((a,b)=>a.name.localeCompare(b.name)).forEach(e => {
+        sel.innerHTML += `<option value="${e.name}">${e.name}</option>`;
+    });
+});
 
 db.ref("hgs_requests").on("value", (snap) => {
     const list = snap.val();
     const container = document.getElementById("market-list");
     container.innerHTML = "";
     if(!list) {
-        container.innerHTML = '<div class="text-center py-10 text-slate-400 text-sm italic">Chưa có ca nào được rao bán...</div>';
+        container.innerHTML = '<div class="text-center py-10 text-slate-400 text-sm italic">Hiện tại chưa có ca nào cần người...</div>';
         return;
     }
     
@@ -14,60 +157,91 @@ db.ref("hgs_requests").on("value", (snap) => {
     document.getElementById("count-tag").innerText = entries.length + " TIN";
 
     entries.forEach(([id, data]) => {
-        // Tạo ID duy nhất cho mỗi phần liên hệ
         const contactId = `contact-${id}`;
-        
         container.innerHTML += `
-            <div class="glass-card p-5 space-y-4 border-l-4 border-l-blue-600 relative overflow-hidden transition-all">
+            <div class="glass-card p-5 space-y-4 border-l-4 border-l-blue-600 relative animate-in">
                 <div class="flex justify-between items-start">
                     <div>
-                        <h3 class="font-extrabold text-slate-800 text-base">${data.name}</h3>
-                        <p class="text-[10px] text-blue-600 font-black uppercase tracking-wider">${data.dayText}</p>
+                        <h3 class="font-extrabold text-slate-800 text-base leading-tight">${data.name}</h3>
+                        <p class="text-[10px] text-blue-600 font-black uppercase tracking-wider mt-1">${data.dayText}</p>
                     </div>
                     <div class="text-right">
                         <span class="text-emerald-600 font-black text-sm">${data.price}</span>
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase leading-none">Ca cần bán:</div>
-                    <span class="shift-badge text-sm">${data.shiftCode}</span>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
+                        <div class="text-[9px] font-bold text-slate-400 uppercase leading-none">Ca cần bán:</div>
+                        <span class="shift-badge text-sm uppercase">${data.shiftCode}</span>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2">
+                        ${data.position ? `<span class="info-badge">📍 ${data.position}</span>` : ''}
+                        ${data.flight ? `<span class="info-badge">✈️ ${data.flight}</span>` : ''}
+                    </div>
                 </div>
 
-                <p class="text-xs text-slate-500 font-medium italic">"${data.note || 'Không có ghi chú thêm'}"</p>
+                <p class="text-xs text-slate-500 font-medium italic">"${data.note || 'Không có ghi chú'}"</p>
                 
                 <div class="pt-2 border-t border-slate-50 space-y-2">
-                    <div id="${contactId}" class="hidden flex items-center gap-2 animate-in fade-in duration-300">
-                        <a href="https://zalo.me/${data.zalo}" target="_blank" class="zalo-btn w-full justify-center py-3 shadow-lg">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M21.5 12c0 5.247-4.253 9.5-9.5 9.5S2.5 17.247 2.5 12 6.753 2.5 12 2.5s9.5 4.253 9.5 9.5z"/></svg>
-                            NHẮN TIN ZALO NGAY
+                    <div id="${contactId}" class="hidden flex items-center gap-2">
+                        <a href="https://zalo.me/${data.zalo}" target="_blank" class="zalo-btn w-full justify-center py-3 shadow-lg text-sm">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M21.5 12c0 5.247-4.253 9.5-9.5 9.5S2.5 17.247 2.5 12 6.753 2.5 12 2.5s9.5 4.253 9.5 9.5z"/></svg>
+                            NHẮN TIN ZALO
                         </a>
                     </div>
                     
-                    <button id="btn-show-${id}" onclick="toggleContact('${contactId}', 'btn-show-${id}')" class="w-full py-2 text-blue-600 font-bold text-xs uppercase bg-blue-50 rounded-lg border border-blue-100">
+                    <button id="btn-show-${id}" onclick="toggleContact('${contactId}', 'btn-show-${id}')" class="w-full py-2.5 text-blue-600 font-bold text-xs uppercase bg-blue-50 rounded-lg border border-blue-100">
                         📞 Bấm vào đây để liên hệ
                     </button>
                 </div>
 
-                <div class="flex items-center justify-between mt-2">
-                     <button onclick="findHelpers('${data.day}', '${data.shiftCode}')" class="text-slate-400 font-bold text-[9px] uppercase hover:text-blue-600 transition-colors">
-                        🔍 Xem ai rảnh để nhờ trực tiếp
+                <div class="flex items-center justify-between mt-2 px-1">
+                     <button onclick="findHelpers('${data.day}', '${data.shiftCode}')" class="text-slate-400 font-bold text-[9px] uppercase hover:text-blue-600">
+                        🔍 Xem ai rảnh để nhờ
                      </button>
-                     <button onclick="deletePost('${id}')" class="p-1 text-slate-300 hover:text-red-500 text-xs">Xóa tin</button>
+                     <button onclick="deletePost('${id}')" class="text-slate-300 hover:text-red-500 text-[10px] font-bold">XÓA TIN</button>
                 </div>
             </div>
         `;
     });
 });
 
-// Hàm để ẩn/hiện phần liên hệ
+document.getElementById("btn-post").onclick = () => {
+    const name = document.getElementById("post-name").value;
+    const day = document.getElementById("post-day").value;
+    const shiftCode = document.getElementById("post-shift").value;
+    const position = document.getElementById("post-position").value;
+    const flight = document.getElementById("post-flight").value;
+    const price = document.getElementById("post-price").value;
+    const zalo = document.getElementById("post-zalo").value;
+    const note = document.getElementById("post-note").value;
+    
+    if(!name || !shiftCode || !price) return alert("Cần nhập: Tên, Ca/Giờ và Giá tiền!");
+    if(!zalo) return alert("Vui lòng nhập SĐT Zalo!");
+
+    db.ref("hgs_requests").push({
+        name, day, shiftCode, position, flight, price, zalo, note,
+        dayText: document.getElementById("post-day").options[document.getElementById("post-day").selectedIndex].text,
+        timestamp: Date.now()
+    }).then(() => {
+        alert("Đã đăng tin thành công!");
+        document.getElementById("post-shift").value = "";
+        document.getElementById("post-position").value = "";
+        document.getElementById("post-flight").value = "";
+        document.getElementById("post-price").value = "";
+        document.getElementById("post-note").value = "";
+    });
+};
+
 function toggleContact(contactId, btnId) {
     const contactDiv = document.getElementById(contactId);
     const btn = document.getElementById(btnId);
-    
     if(contactDiv.classList.contains('hidden')) {
         contactDiv.classList.remove('hidden');
-        btn.innerText = "Đóng thông tin liên hệ";
+        contactDiv.classList.add('animate-in');
+        btn.innerText = "Đóng thông tin";
         btn.classList.replace('text-blue-600', 'text-slate-400');
         btn.classList.replace('bg-blue-50', 'bg-slate-50');
     } else {
@@ -77,4 +251,41 @@ function toggleContact(contactId, btnId) {
         btn.classList.replace('bg-slate-50', 'bg-blue-50');
     }
 }
+
+function deletePost(id) { if(confirm("Bạn muốn gỡ tin đăng này?")) db.ref("hgs_requests").child(id).remove(); }
+
+function findHelpers(dayKey, targetShiftStr) {
+    const target = parseShift(targetShiftStr);
+    const freePeople = [];
+
+    employeeData.forEach(e => {
+        const staffShiftStr = e[dayKey] || "OFF";
+        const staffParts = staffShiftStr.split(";");
+        let isBusy = false;
+
+        staffParts.forEach(p => {
+            const s = parseShift(p);
+            if (s.dur > 0) {
+                if (Math.max(target.start, s.start) < Math.min(target.end, s.end)) isBusy = true;
+            }
+        });
+        if (!isBusy) freePeople.push({ name: e.name, shift: staffShiftStr });
+    });
+
+    const listDiv = document.getElementById("suggest-list");
+    listDiv.innerHTML = freePeople.length ? "" : "<p class='text-center text-slate-400 py-4'>Không tìm thấy ai rảnh hôm nay.</p>";
+    freePeople.forEach(p => {
+        listDiv.innerHTML += `
+            <div class="flex justify-between items-center p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                <span class="font-bold text-slate-700 text-sm">${p.name}</span>
+                <span class="text-[9px] font-black px-2 py-1 rounded-lg bg-white border ${p.shift === 'OFF' ? 'text-emerald-500 border-emerald-100' : 'text-blue-400 border-blue-100'} uppercase">${p.shift}</span>
+            </div>
+        `;
+    });
+    document.getElementById("modal").classList.replace("hidden", "flex");
+}
+
+function closeModal() { document.getElementById("modal").classList.replace("flex", "hidden"); }
 </script>
+</body>
+</html>
